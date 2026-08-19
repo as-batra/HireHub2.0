@@ -49,4 +49,9 @@ const jobSchema = new mongoose.Schema({
         }
     ]
 },{timestamps:true});
+
+// Define database indexes for text search and location/salary filtering
+jobSchema.index({ title: "text", description: "text" });
+jobSchema.index({ location: 1, salary: 1 });
+
 export const Job = mongoose.model("Job", jobSchema);

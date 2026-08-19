@@ -36,28 +36,67 @@ export const postJob = async (req, res) => {
 // student k liye
 export const getAllJobs = async (req, res) => {
     try {
-        const keyword = req.query.keyword || "";
-        const query = {
-            $or: [
+        const { keyword = "", location = "", salary = "", page = 1, limit = 6 } = req.query;
+        const query = {};
+
+        if (keyword) {
+            query.$or = [
                 { title: { $regex: keyword, $options: "i" } },
                 { description: { $regex: keyword, $options: "i" } },
-            ]
-        };
-        const jobs = await Job.find(query).populate({
-            path: "company"
-        }).sort({ createdAt: -1 });
-        if (!jobs) {
-            return res.status(404).json({
-                message: "Jobs not found.",
-                success: false
-            })
-        };
+            ];
+        }
+
+        if (location) {
+            query.location = { $regex: location, $options: "i" };
+        }
+
+        if (salary) {
+            const cleanSalary = salary.trim().toLowerCase();
+            if (cleanSalary === "0-40k") {
+                query.salary = { $gte: 0, $lte: 40000 };
+            } else if (cleanSalary === "42-1lakh") {
+                query.salary = { $gte: 42000, $lte: 100000 };
+            } else if (cleanSalary === "1lakh to 5lakh") {
+                query.salary = { $gte: 100000, $lte: 500000 };
+            } else if (cleanSalary.includes("-")) {
+                const parts = cleanSalary.split("-").map(p => parseInt(p.trim()));
+                if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+                    query.salary = { $gte: parts[0], $lte: parts[1] };
+                }
+            } else {
+                const numericSalary = parseInt(cleanSalary);
+                if (!isNaN(numericSalary)) {
+                    query.salary = { $gte: numericSalary };
+                }
+            }
+        }
+
+        const currentPage = Number(page);
+        const currentLimit = Number(limit);
+        const skip = (currentPage - 1) * currentLimit;
+
+        const totalJobs = await Job.countDocuments(query);
+        const jobs = await Job.find(query)
+            .populate({ path: "company" })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(currentLimit);
+
+        const totalPages = Math.ceil(totalJobs / currentLimit);
+
         return res.status(200).json({
             jobs,
+            totalPages,
+            currentPage,
+            totalJobs,
             success: true
-        })
+        });
     } catch (error) {
         console.log(error);
+        return res.status(500).json({
+            message: "Internal server error.",
+            success: false
+        });
     }
 }
 // student

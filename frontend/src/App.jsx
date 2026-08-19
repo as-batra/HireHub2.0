@@ -1,7 +1,11 @@
 
 // 
 
+import { useEffect } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { io } from 'socket.io-client'
+import { toast } from 'sonner'
 import Navbar from './components/shared/Navbar'
 import Login from './components/auth/Login'
 import Signup from './components/auth/Signup'
@@ -76,6 +80,37 @@ const appRouter = createBrowserRouter([
 
 ])
 function App() {
+  const { user } = useSelector(store => store.auth);
+
+  useEffect(() => {
+    let socket;
+    if (user) {
+      const apiURL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+      const socketUrl = apiURL.replace(/\/api\/v1\/?$/, "");
+
+      socket = io(socketUrl, {
+        query: { userId: user._id },
+        transports: ['websocket']
+      });
+
+      socket.on("applicationStatusUpdate", (data) => {
+        const message = `Application Update: Your application for "${data.jobTitle}" has been ${data.status.toUpperCase()}!`;
+        if (data.status === 'accepted') {
+          toast.success(message, { duration: 6000 });
+        } else if (data.status === 'rejected') {
+          toast.error(message, { duration: 6000 });
+        } else {
+          toast(message, { duration: 6000 });
+        }
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [user]);
 
   return (
     <div>

@@ -1,5 +1,6 @@
 import { Application } from "../models/application.model.js";
 import { Job } from "../models/job.model.js";
+import { getReceiverSocketId, getIo } from "../utils/socket.js";
 
 export const applyJob = async (req, res) => {
     try {
@@ -107,7 +108,7 @@ export const updateStatus = async (req,res) => {
         };
 
         // find the application by applicantion id
-        const application = await Application.findOne({_id:applicationId});
+        const application = await Application.findOne({_id:applicationId}).populate('job');
         if(!application){
             return res.status(404).json({
                 message:"Application not found.",
@@ -118,6 +119,15 @@ export const updateStatus = async (req,res) => {
         // update the status
         application.status = status.toLowerCase();
         await application.save();
+
+        // Emit real-time socket notification to candidate
+        const receiverSocketId = getReceiverSocketId(application.applicant);
+        if (receiverSocketId) {
+            getIo().to(receiverSocketId).emit("applicationStatusUpdate", {
+                jobTitle: application.job.title,
+                status: status.toLowerCase()
+            });
+        }
 
         return res.status(200).json({
             message:"Status updated successfully.",

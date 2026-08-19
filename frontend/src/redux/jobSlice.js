@@ -9,6 +9,10 @@ const jobSlice = createSlice({
         searchJobByText:"",
         allAppliedJobs:[],
         searchedQuery:"",
+        currentPage: 1,
+        totalPages: 1,
+        filterLocation: "",
+        filterSalary: "",
     },
     reducers:{
         // actions
@@ -29,6 +33,18 @@ const jobSlice = createSlice({
         },
         setSearchedQuery:(state,action) => {
             state.searchedQuery = action.payload;
+        },
+        setCurrentPage:(state,action) => {
+            state.currentPage = action.payload;
+        },
+        setTotalPages:(state,action) => {
+            state.totalPages = action.payload;
+        },
+        setFilterLocation:(state,action) => {
+            state.filterLocation = action.payload;
+        },
+        setFilterSalary:(state,action) => {
+            state.filterSalary = action.payload;
         }
     }
 });
@@ -38,6 +54,10 @@ export const {
     setAllAdminJobs,
     setSearchJobByText, 
     setAllAppliedJobs,
-    setSearchedQuery
+    setSearchedQuery,
+    setCurrentPage,
+    setTotalPages,
+    setFilterLocation,
+    setFilterSalary
 } = jobSlice.actions;
 export default jobSlice.reducer;
